@@ -11,6 +11,8 @@
 //decorator factory
 function Logger(logString: string) {
   // functions that returns new function
+  console.log("logger factory");
+
   return function (constructor: Function) {
     console.log(logString);
     console.log(constructor);
@@ -18,7 +20,10 @@ function Logger(logString: string) {
 }
 
 function withTemplate(template: string, hookId: string) {
+  console.log("template factory");
   return function (constructor: any) {
+    console.log("Rendering template");
+
     const hookEl = document.getElementById(hookId);
     const p = new constructor();
     if (hookEl) {
@@ -28,6 +33,7 @@ function withTemplate(template: string, hookId: string) {
   };
 }
 // @Logger("Logging - person")
+@Logger("LOGGING")
 @withTemplate("<h1>My person object </h1>", "app")
 class Person {
   name = "Zox";
@@ -40,3 +46,69 @@ class Person {
 const pers = new Person();
 
 console.log(pers);
+
+// ---
+
+// decorator
+function Log(target: any, propertyName: string) {
+  console.log("Property decorator");
+  console.log(target);
+  console.log(propertyName);
+}
+function Log2(target: any, name: string, descriptior: PropertyDescriptor) {
+  console.log("accessor decorator");
+  console.log(target);
+  console.log(name);
+  console.log(descriptior);
+}
+
+function Log3(
+  target: any,
+  name: string | Symbol,
+  descriptior: PropertyDescriptor
+) {
+  console.log("Method decorator");
+  console.log(target);
+  console.log(name);
+  console.log(descriptior);
+}
+
+function Log4(target: any, name: string | Symbol, position: number) {
+  console.log("Parameter decorator");
+  console.log(target);
+  console.log(name);
+  console.log(position);
+}
+
+class Product {
+  // when class definition registered by JS it is instantiated, but it will be executed when officially instanciated
+  // decoretors dont render when you call them, but then they are defined
+  // tye are additional setup work for the class
+  // they are not event listeners
+  // adding extra functionalities behind the scenes
+  @Log
+  title: string;
+  private _price: number;
+
+  @Log2
+  set price(val: number) {
+    if (val > 0) {
+      this._price = val;
+    } else {
+      throw new Error("Invalid price - should be positive!");
+    }
+  }
+
+  constructor(t: string, p: number) {
+    this.title = t;
+    this._price = p;
+  }
+
+  @Log3
+  getPriceWithTax(@Log4 tax: number) {
+    return this._price * (1 + tax);
+  }
+}
+
+const p1 = new Product('Book', 19);
+const p2 = new Product('Book 2', 29);
