@@ -21,15 +21,21 @@ function Logger(logString: string) {
 
 function withTemplate(template: string, hookId: string) {
   console.log("template factory");
-  return function (constructor: any) {
-    console.log("Rendering template");
-
-    const hookEl = document.getElementById(hookId);
-    const p = new constructor();
-    if (hookEl) {
-      hookEl.innerHTML = template;
-      hookEl.querySelector("h1")!.textContent = p.name;
-    }
+  return function <T extends { new (...args: any[]): { name: string } }>(
+    originalConstructor: T
+  ) {
+    return class extends originalConstructor {
+      constructor(..._: any[]) {
+        // use underscore if it doesnt matter and TS should ignore it
+        super();
+        console.log("Rendering template");
+        const hookEl = document.getElementById(hookId);
+        if (hookEl) {
+          hookEl.innerHTML = template;
+          hookEl.querySelector("h1")!.textContent = this.name;
+        }
+      }
+    };
   };
 }
 // @Logger("Logging - person")
@@ -110,5 +116,36 @@ class Product {
   }
 }
 
-const p1 = new Product('Book', 19);
-const p2 = new Product('Book 2', 29);
+const p1 = new Product("Book", 19);
+const p2 = new Product("Book 2", 29);
+
+function Autobind(
+  _: any,
+  _2: string,
+  descriptior: PropertyDescriptor
+) {
+  const originalMethod = descriptior.value;
+  const adjDescriptor: PropertyDescriptor = {
+    configurable: true, 
+    enumerable: false, 
+    get() {
+      const boundFn = originalMethod.bind(this);
+      return boundFn;
+    }
+  };
+  return adjDescriptor; // gonna replace descriptior with the new one
+}
+
+class Printer {
+  message = "This works";
+
+  @Autobind
+  showMessage() {
+    console.log(this.message);
+  }
+}
+
+const p = new Printer();
+
+const button = document.querySelector("button")!;
+button.addEventListener("click", p.showMessage);
