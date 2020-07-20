@@ -119,19 +119,15 @@ class Product {
 const p1 = new Product("Book", 19);
 const p2 = new Product("Book 2", 29);
 
-function Autobind(
-  _: any,
-  _2: string,
-  descriptior: PropertyDescriptor
-) {
+function Autobind(_: any, _2: string, descriptior: PropertyDescriptor) {
   const originalMethod = descriptior.value;
   const adjDescriptor: PropertyDescriptor = {
-    configurable: true, 
-    enumerable: false, 
+    configurable: true,
+    enumerable: false,
     get() {
       const boundFn = originalMethod.bind(this);
       return boundFn;
-    }
+    },
   };
   return adjDescriptor; // gonna replace descriptior with the new one
 }
@@ -149,3 +145,83 @@ const p = new Printer();
 
 const button = document.querySelector("button")!;
 button.addEventListener("click", p.showMessage);
+
+// ---
+
+interface ValidatorConfig {
+  [property: string]: {
+    [validatableProperty: string]: string[]; // ["requiered", "positive", ]
+  };
+}
+
+const registeredValidators: ValidatorConfig = {};
+
+function Requiered(target: any, propertyName: string) {
+  registeredValidators[target.constructor.name] = {
+    ...registeredValidators[target.constructor.name],
+    [propertyName]: ["requiered"],
+  };
+}
+
+function PositiveNumber(target: any, propertyName: string) {
+  registeredValidators[target.constructor.name] = {
+    ...registeredValidators[target.constructor.name],
+    [propertyName]: ["positive"],
+  };
+}
+
+function validate(obj: any) {
+  const objValidatorConfig = registeredValidators[obj.constructor.name];
+  if (!objValidatorConfig) {
+    return true;
+  }
+  let isValid = true;
+  for (const prop in objValidatorConfig) {
+    console.log(prop);
+    for (const validator of objValidatorConfig[prop]) {
+      switch (validator) {
+        case "required":
+          isValid = isValid && !!obj[prop];
+          break;
+        case "positive":
+          isValid = isValid && obj[prop] > 0;
+          break;
+      }
+    }
+  }
+  return isValid;
+}
+
+class Course {
+  @Requiered
+  title: string;
+  @PositiveNumber
+  price: number;
+
+  constructor(t: string, p: number) {
+    this.title = t;
+    this.price = p;
+  }
+}
+
+// Validate fethed data for example
+
+const courseForm = document.querySelector("form")!;
+courseForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const titleEl = document.getElementById("title") as HTMLInputElement;
+  const priceEl = document.getElementById("price") as HTMLInputElement;
+
+  const title = titleEl.value;
+  const price = +priceEl.value;
+
+  // if (title.trim().length > 0) {} // standard validation
+
+  const createdCourse = new Course(title, price);
+
+  if (!validate(createdCourse)) {
+    alert("Invalid input");
+    return;
+  }
+  console.log(createdCourse);
+});
